@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { StarRating } from '../components/StarRating';
-import { MessageSquare, Calendar, Filter, RefreshCcw } from 'lucide-react';
+import { MessageSquare, Download, Filter, RefreshCcw } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 export const ViewFeedback = () => {
   const [feedbacks, setFeedbacks] = useState([]);
@@ -12,6 +13,7 @@ export const ViewFeedback = () => {
   // Filters State
   const [filterRating, setFilterRating] = useState('all');
   const [filterMealType, setFilterMealType] = useState('all');
+  const [filterDate, setFilterDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchAllFeedback = async () => {
@@ -68,6 +70,10 @@ export const ViewFeedback = () => {
       result = result.filter((fb) => fb.menu?.meal_type === filterMealType);
     }
 
+    if (filterDate) {
+      result = result.filter((fb) => fb.menu?.date === filterDate);
+    }
+
     // Search query (student name or food item or comment)
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
@@ -80,12 +86,71 @@ export const ViewFeedback = () => {
     }
 
     setFilteredFeedbacks(result);
-  }, [filterRating, filterMealType, searchQuery, feedbacks]);
+  }, [filterRating, filterMealType, filterDate, searchQuery, feedbacks]);
 
   const handleResetFilters = () => {
     setFilterRating('all');
     setFilterMealType('all');
+    setFilterDate('');
     setSearchQuery('');
+  };
+
+  const formatDate = (date) => (date ? new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }) : 'Unknown date');
+
+  const downloadFeedbackPdf = (entries, title, fileName) => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 16;
+    let y = 20;
+
+    const addText = (text, options = {}) => {
+      const lines = pdf.splitTextToSize(String(text), pageWidth - margin * 2);
+      if (y + lines.length * 6 > pageHeight - margin) {
+        pdf.addPage();
+        y = margin;
+      }
+      pdf.text(lines, margin, y, options);
+      y += lines.length * 6;
+    };
+
+    pdf.setFontSize(18);
+    addText(title);
+    pdf.setFontSize(10);
+    addText(`Generated on ${new Date().toLocaleString()}`);
+    y += 4;
+
+    entries.forEach((fb, index) => {
+      if (y > pageHeight - 45) {
+        pdf.addPage();
+        y = margin;
+      }
+      pdf.setFontSize(12);
+      addText(`${index + 1}. ${fb.profiles?.name || 'Anonymous Student'} - ${fb.rating}/5 stars`);
+      pdf.setFontSize(10);
+      addText(`Date: ${formatDate(fb.menu?.date)} | Meal: ${fb.menu?.meal_type || 'N/A'}`);
+      addText(`Food items: ${fb.menu?.food_items || 'N/A'}`);
+      addText(`Comment: ${fb.comment || 'No comment left.'}`);
+      y += 4;
+    });
+
+    pdf.save(fileName);
+  };
+
+  const handleDownloadDay = () => {
+    if (!filterDate) return;
+    const dayFeedbacks = feedbacks.filter((fb) => fb.menu?.date === filterDate);
+    downloadFeedbackPdf(dayFeedbacks, `Feedback Report - ${formatDate(filterDate)}`, `feedback-${filterDate}.pdf`);
+  };
+
+  const handleDownloadIndividual = (fb) => {
+    const date = fb.menu?.date || 'feedback';
+    downloadFeedbackPdf([fb], 'Individual Feedback Report', `feedback-${fb.id || date}.pdf`);
   };
 
   return (
@@ -142,6 +207,20 @@ export const ViewFeedback = () => {
           </select>
         </div>
 
+        <div className="filter-item">
+          <label htmlFor="filter-date" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-muted)' }}>
+            Select Day
+          </label>
+          <input
+            id="filter-date"
+            type="date"
+            className="form-input"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            style={{ padding: '0.5rem' }}
+          />
+        </div>
+
         <div className="filter-item" style={{ flex: 2 }}>
           <label htmlFor="filter-search" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-muted)' }}>
             Search
@@ -165,6 +244,18 @@ export const ViewFeedback = () => {
           >
             <Filter size={16} />
             <span>Reset</span>
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <button
+            onClick={handleDownloadDay}
+            className="btn"
+            disabled={!filterDate || feedbacks.every((fb) => fb.menu?.date !== filterDate)}
+            style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+            title="Select a day to download all its feedback"
+          >
+            <Download size={16} />
+            <span>Download Day PDF</span>
           </button>
         </div>
       </div>
@@ -216,8 +307,17 @@ export const ViewFeedback = () => {
                       : 'N/A'}
                   </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
                   <StarRating rating={fb.rating} size={16} />
+                  <button
+                    onClick={() => handleDownloadIndividual(fb)}
+                    className="btn btn-secondary"
+                    style={{ padding: '0.35rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.25rem', width: 'auto' }}
+                    title="Download this feedback as a PDF"
+                  >
+                    <Download size={14} />
+                    <span>Download PDF</span>
+                  </button>
                 </div>
               </div>
 
