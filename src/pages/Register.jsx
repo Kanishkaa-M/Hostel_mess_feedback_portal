@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, ShieldAlert } from 'lucide-react';
 
 export const Register = () => {
   const [name, setName] = useState('');
@@ -14,10 +14,20 @@ export const Register = () => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
+  // Load college domain from env or default to ksrce.ac.in
+  const collegeDomain = import.meta.env.VITE_COLLEGE_DOMAIN || 'ksrce.ac.in';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Check college domain suffix
+    if (!email.toLowerCase().endsWith(`@${collegeDomain}`)) {
+      setError(`Registration is restricted to @${collegeDomain} email addresses only.`);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -43,7 +53,7 @@ export const Register = () => {
       <div className="auth-card">
         <div className="auth-header">
           <h1>Create Account</h1>
-          <p>Register as a student or admin</p>
+          <p>Register using your <strong>@{collegeDomain}</strong> ID</p>
         </div>
 
         {error && <div className="alert alert-error">{error}</div>}
@@ -64,7 +74,7 @@ export const Register = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="email">College Email Address</label>
             <input
               id="email"
               type="email"
@@ -72,8 +82,12 @@ export const Register = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="e.g. student@hostel.com"
+              placeholder={`username@${collegeDomain}`}
             />
+            <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+              <ShieldAlert size={12} />
+              <span>Must end with @{collegeDomain}</span>
+            </small>
           </div>
 
           <div className="form-group">

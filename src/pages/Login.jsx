@@ -11,19 +11,22 @@ export const Login = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
+  const collegeDomain = import.meta.env.VITE_COLLEGE_DOMAIN || 'ksrce.ac.in';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Check college domain suffix
+    if (!email.toLowerCase().endsWith(`@${collegeDomain}`)) {
+      setError(`Login is restricted to @${collegeDomain} email addresses only.`);
+      return;
+    }
+
     setLoading(true);
 
     try {
       const data = await signIn(email, password);
-      // Determine redirection based on the user's role
-      // Note: AuthContext handles setting the user and profile. 
-      // The profile is fetched asynchronously, so we read it from profiles table or wait.
-      // To be safe and responsive, we can let App.jsx handle redirection based on state,
-      // or check the user profile role right after sign-in.
-      // Let's redirect to '/' and let our App router route guards redirect.
       navigate('/');
     } catch (err) {
       setError(err.message || 'Failed to sign in. Please check your credentials.');
@@ -52,7 +55,7 @@ export const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="e.g. student@hostel.com"
+              placeholder={`username@${collegeDomain}`}
             />
           </div>
 
