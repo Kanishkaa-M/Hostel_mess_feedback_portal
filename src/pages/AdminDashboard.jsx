@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { StarRating } from '../components/StarRating';
-import { MessageSquare, Award, AlertTriangle, Users, PlusCircle, LayoutGrid } from 'lucide-react';
+import { MessageSquare, Award, AlertTriangle, Users, PlusCircle, LayoutGrid, FileText } from 'lucide-react';
+import { PdfMenuUploader } from '../components/PdfMenuUploader';
 
 export const AdminDashboard = () => {
   const [feedbacks, setFeedbacks] = useState([]);
+  const [showPdfModal, setShowPdfModal] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     average: 0,
@@ -146,7 +148,11 @@ export const AdminDashboard = () => {
           <h1>Admin Dashboard</h1>
           <p style={{ color: 'var(--text-muted)' }}>Real-time statistics and hostel mess insights</p>
         </div>
-        <div className="page-actions">
+        <div className="page-actions" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button onClick={() => setShowPdfModal(true)} className="btn btn-secondary" style={{ width: 'auto' }}>
+            <FileText size={18} />
+            <span>Upload Weekly PDF Menu</span>
+          </button>
           <Link to="/admin/menu" className="btn" style={{ width: 'auto' }}>
             <PlusCircle size={18} />
             <span>Manage Menu</span>
@@ -298,6 +304,12 @@ export const AdminDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* PDF Weekly Menu Upload Modal */}
+      <PdfMenuUploader
+        isOpen={showPdfModal}
+        onClose={() => setShowPdfModal(false)}
+      />
     </div>
   );
 };
