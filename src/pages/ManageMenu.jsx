@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Calendar, Plus, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Calendar, Plus, Edit2, Trash2, X, Check, FileText } from 'lucide-react';
+import { PdfMenuUploader } from '../components/PdfMenuUploader';
 
 export const ManageMenu = () => {
   const [menus, setMenus] = useState([]);
@@ -10,6 +11,7 @@ export const ManageMenu = () => {
 
   // Form State
   const [showModal, setShowModal] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
   const [editingId, setEditingId] = useState(null); // Null for Add, ID for Edit
   const [date, setDate] = useState('');
   const [day, setDay] = useState('Monday');
@@ -160,10 +162,16 @@ export const ManageMenu = () => {
           <h1>Manage Mess Menu</h1>
           <p style={{ color: 'var(--text-muted)' }}>Add, edit, or remove menu options scheduled by date</p>
         </div>
-        <button onClick={handleOpenAdd} className="btn" style={{ width: 'auto' }}>
-          <Plus size={18} />
-          <span>Add Menu Item</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button onClick={() => setShowPdfModal(true)} className="btn btn-secondary" style={{ width: 'auto' }}>
+            <FileText size={18} />
+            <span>Upload Weekly PDF Menu</span>
+          </button>
+          <button onClick={handleOpenAdd} className="btn" style={{ width: 'auto' }}>
+            <Plus size={18} />
+            <span>Add Menu Item</span>
+          </button>
+        </div>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
@@ -336,6 +344,13 @@ export const ManageMenu = () => {
           </div>
         </div>
       )}
+
+      {/* PDF Weekly Menu Upload Modal */}
+      <PdfMenuUploader
+        isOpen={showPdfModal}
+        onClose={() => setShowPdfModal(false)}
+        onSuccess={fetchMenus}
+      />
     </div>
   );
 };
